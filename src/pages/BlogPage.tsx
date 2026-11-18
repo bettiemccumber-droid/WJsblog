@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { posts } from '../content/posts'
 import type { PostCategory } from '../content/types'
 import { Sidebar } from '../components/blog/Sidebar'
 import { PostCard } from '../components/blog/PostCard'
@@ -8,6 +7,7 @@ import { Pagination } from '../components/blog/Pagination'
 import { clamp } from '../lib/format'
 import { getSearchParam, setSearchParams } from '../lib/query'
 import { Search } from 'lucide-react'
+import { useMergedPosts } from '../hooks/useMergedPosts'
 
 const PAGE_SIZE = 6
 
@@ -26,6 +26,7 @@ function normalizeCategory(x: string): PostCategory | 'All' {
 export function BlogPage() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { posts } = useMergedPosts()
 
   const q = getSearchParam(location.search, 'q', '').trim()
   const category = normalizeCategory(
@@ -45,7 +46,7 @@ export function BlogPage() {
         p.tags.some((t) => t.toLowerCase().includes(qlc))
       )
     })
-  }, [q, category])
+  }, [q, category, posts])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = clamp(page, 1, totalPages)

@@ -32,6 +32,9 @@ export type Post = {
   coverImage: { src: string; alt: string }
   readingTimeMinutes: number
   blocks: ContentBlock[]
+  /** Present when the post was published via zjads /api/posts */
+  bodyHtml?: string
+  source?: 'static' | 'api'
 }
 
 export type Product = {

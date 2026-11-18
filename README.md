@@ -12,6 +12,7 @@ Modern, clean multi-category blog + product recommendations site.
 - Social media widget with working links
 - Smooth transitions, hover animations, back-to-top button
 - Mobile responsive layout
+- zjads publish API: new articles appear without redeploying static content
 
 ## Run locally
 
@@ -27,76 +28,44 @@ npm run build
 npm run preview
 ```
 
-# React + TypeScript + Vite
+## zjads / 数据采集平台发文
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+静态文章在 `src/content/posts.ts`。zjads 通过接口发文后，文章写入 Vercel Blob 的 `published-posts.json`，列表和详情立刻可读，不会改写 `posts.ts`，也不用为每一篇重新部署。
 
-Currently, two official plugins are available:
+详情页地址是 `/blog/<slug>`。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 环境变量（Vercel）
 
-## React Compiler
+- `PUBLISH_TOKEN`：调用 `POST /api/posts` 时放在请求头 `Authorization: Bearer <PUBLISH_TOKEN>`。未配置或密钥不对时返回 401。
+- 连接一个 **Private** Blob store 到本项目（会注入 `BLOB_READ_WRITE_TOKEN` 或 `BLOB_STORE_ID`）。必须用 Private：公开 store 覆盖同一 JSON 后，读取最多会滞后约一分钟。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+站点域名：`https://synapsewave.store`
 
-## Expanding the ESLint configuration
+### 调用地址
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+POST https://synapsewave.store/api/posts
+Content-Type: application/json
+Authorization: Bearer <PUBLISH_TOKEN>
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+请求体字段：`title`、`excerpt`、`category`、`image`、`images`、`bodyHtml`、`merchantName`、`merchantUrl`、`mid`、`trackUrl`、`author`。`title` 和 `bodyHtml` 必填。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+成功时返回 200：
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```json
+{
+  "slug": "generated-english-kebab-slug",
+  "url": "https://synapsewave.store/blog/generated-english-kebab-slug"
+}
 ```
+
+`url` 只会是 `https://synapsewave.store/blog/<slug>`。`merchantUrl` 只作记录。`bodyHtml` 里的购买和跟踪链接原样保存。
+
+公开读取（不需要 token）：
+
+- `GET https://synapsewave.store/api/posts`：接口发布的文章列表
+- `GET https://synapsewave.store/api/posts/<slug>`：`{ "bodyHtml": "..." }`
+- `DELETE https://synapsewave.store/api/posts/<slug>`：删除一篇接口文章（需要 token）
+
+前端会把接口文章与静态 `posts.ts` 按 slug 合并；slug 相同优先用接口元数据，静态正文仍优先。

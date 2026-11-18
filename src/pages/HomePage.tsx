@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Sparkles } from 'lucide-react'
-import { posts } from '../content/posts'
 import { products } from '../content/products'
 import { PostCard } from '../components/blog/PostCard'
+import { useMergedPosts } from '../hooks/useMergedPosts'
 
 const heroBg = '/hero.png'
 
 export function HomePage() {
+  const { posts } = useMergedPosts()
   const latest = posts.slice(0, 3)
   const featuredProducts = products.slice(0, 3)
 
